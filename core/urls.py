@@ -20,4 +20,5 @@ from account import urls
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("account.urls")),
+    path("inventory/", include("inventory.urls")),
 ]

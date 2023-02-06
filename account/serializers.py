@@ -36,3 +36,5 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             company = CompanyProfile.objects.create(user=user, **validated_data)
 
         return company
+
+
