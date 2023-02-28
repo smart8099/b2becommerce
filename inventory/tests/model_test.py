@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django.db import IntegrityError
 
-from inventory.models import Product
+from inventory.models import Product,Order
 from account.models import CompanyProfile
 from django.contrib.auth.models import User
 
@@ -58,3 +58,86 @@ def test_product_sku_unique(company_profile):
             quantity=5,
             unit='Each'
         )
+
+
+
+
+
+@pytest.fixture
+def company_profile(user):
+    return CompanyProfile.objects.create(
+    user=user,
+    company_name='Test Company'
+    )
+
+@pytest.fixture
+def product(company_profile):
+    return Product.objects.create(
+        product_owner=company_profile,
+        name='Test Product',
+        sku='P123',
+        price=10.00,
+        description='This is a test product',
+        quantity=100,
+        unit='piece'
+        )
+
+@pytest.mark.django_db
+def test_order_model_create(company_profile, product):
+    order = Order.objects.create(
+    customer=company_profile,
+    total_amount=10.00
+    )
+    order.products.add(product)
+    assert order.id is not None
+    assert order.customer == company_profile
+    assert order.total_amount == 10.00
+    assert order.products.count() == 1
+    assert order.status == 'PENDING'
+    assert order.created_at is not None
+    assert order.updated_at is not None
+
+
+@pytest.mark.django_db
+def test_order_created_with_correct_status(company_profile, product):
+    """
+    Test that an order is created with correct status
+    """
+    order = Order.objects.create(
+    customer=company_profile,
+    total_amount=product.price
+    )
+    order.products.add(product)
+    order.refresh_from_db()
+    assert order.status == 'PENDING'
+@pytest.mark.django_db
+def test_order_total_amount_calculation(company_profile, product):
+    """
+    Test that the total amount is calculated correctly
+    """
+    order = Order.objects.create(
+    customer=company_profile,
+    total_amount=product.price
+    )
+    order.products.add(product)
+    order.refresh_from_db()
+    assert order.total_amount == product.price
+
+
+@pytest.mark.django_db
+def test_order_product_quantity_decreased(company_profile, product):
+    """
+    Test that the product quantity is decreased after an order is placed
+    """
+    initial_quantity = product.quantity
+    product.quantity = initial_quantity - 1
+    product.save()
+
+    order = Order.objects.create(
+        customer=company_profile,
+        total_amount=product.price
+    )
+    order.products.add(product)
+
+    product.refresh_from_db()
+    assert product.quantity == initial_quantity - 1
