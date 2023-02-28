@@ -1,9 +1,12 @@
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
 from rest_framework.renderers import BrowsableAPIRenderer
-
-from inventory.models import Product
+from .models import Order, Product
 from account.models import CompanyProfile
+from .serializers import OrderSerializer, ProductSerializer
+from rest_framework import generics
+from inventory.models import Product
+
 from rest_framework.exceptions import NotFound
 
 # Create your views here.
@@ -74,6 +77,17 @@ class ProductUpdateView(generics.UpdateAPIView):
 
     def perform_update(self, serializer):
         serializer.save()
+
+
+class OrderCreateAPIView(generics.CreateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+
+    def perform_create(self, serializer):
+        user_id = self.request.user.id
+        real_id = CompanyProfile.objects.get(user_id=user_id).id
+        serializer.save(customer_id=real_id)
+
 
 # class OrderCreateView(generics.CreateAPIView):
 #     queryset = Order.objects.all()
